@@ -68,8 +68,8 @@ runs:
       run:  |
         NOW=$(date +'%m-%d-%Y--%H-%M-%S')
         IMAGE_TAG=$APPLICATION_ECR_URL:$APPLICATION_NAME
-        docker tag $inputs.APPLICATION_IMAGE $IMAGE_TAG--latest
-        docker tag $inputs.APPLICATION_IMAGE $IMAGE_TAG--$NOW
+        docker tag $APPLICATION_IMAGE $IMAGE_TAG--latest
+        docker tag $APPLICATION_IMAGE $IMAGE_TAG--$NOW
         docker push $IMAGE_TAG--latest
         docker push $IMAGE_TAG--$NOW
 
@@ -92,7 +92,7 @@ runs:
         APPLICATION_NAME: ${{ inputs.APPLICATION_NAME }}
       run:  |
           IMG_URI=$APPLICATION_ECR_URL::$APPLICATION_NAME--latest
-          aws lambda update-function-code --function-name $inputs.APPLICATION_NAME --image-uri $IMG_URI --no-cli-pager --profile default
+          aws lambda update-function-code --function-name $APPLICATION_NAME --image-uri $IMG_URI --no-cli-pager --profile default
 
 
     - name: 'Push to S3 repo'
