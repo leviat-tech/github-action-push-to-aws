@@ -1,0 +1,107 @@
+name: AWS Push
+description: This action pushes a docker container to ecr or files to s3 and restarts the service if needed
+inputs:
+  AWS_REGION:
+    description: 'AWS region'
+    required: true
+    default: ''
+  AWS_ACCESS_KEY_ID:
+    description: 'AWS Access key id'
+    required: true
+    default: ''
+  AWS_ACCESS_KEY_SECRET:
+    description: 'AWS Access key secret'
+    required: true
+    default: ''
+  ACTION_TYPE:
+    description: 'Type of the action, must be one of: S3, ECS, LAMBDA'
+    required: true
+    default: ''
+
+  APPLICATION_NAME:
+    description: 'Required if ACTION_TYPE is one of: ECS, LAMBDA'
+    required: false
+    default: ''
+  APPLICATION_IMAGE:
+    description: 'Required if ACTION_TYPE is one of: ECS, LAMBDA. Name of the docker image you just built.'
+    required: false
+    default: ''
+  APPLICATION_ECR_URL:
+    description: 'Required if ACTION_TYPE is one of: ECS, LAMBDA. ECR url.'
+    required: false
+    default: ''
+
+  APPLICATION_ECS_CLUSTER_NAME:
+    description: 'Required if ACTION_TYPE is ECS. ECS cluster name url.'
+    required: false
+    default: ''
+
+  S3_FOLDER_HERE:
+    description: 'Required if ACTION_TYPE is S3. Path of the local folder you want to copy'
+    required: false
+    default: ''
+  S3_FOLDER_THERE:
+    description: 'Required if ACTION_TYPE is S3. Path of the s3 folder you want to copy to'
+    required: false
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: 'Set AWS creds'
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        AWS_ACCESS_KEY_SECRET: ${{ inputs.AWS_ACCESS_KEY_SECRET }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
+      run: |
+        aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile default
+        aws configure set aws_secret_access_key $AWS_ACCESS_KEY_SECRET --profile default
+        aws configure set aws_region $AWS_REGION --profile default
+
+    - name: 'Push image'
+      shell: bash
+      if: inputs.ACTION_TYPE == 'ECS' || inputs.ACTION_TYPE == 'LAMBDA'
+      env:
+        APPLICATION_ECR_URL: ${{ inputs.APPLICATION_ECR_URL }}
+        APPLICATION_NAME: ${{ inputs.APPLICATION_NAME }}
+        APPLICATION_IMAGE: ${{ inputs.APPLICATION_IMAGE }}
+      run:  |
+        NOW=$(date +'%m-%d-%Y--%H-%M-%S')
+        IMAGE_TAG=$APPLICATION_ECR_URL:$APPLICATION_NAME"
+        docker tag $inputs.APPLICATION_IMAGE $IMAGE_TAG--latest
+        docker tag $inputs.APPLICATION_IMAGE $IMAGE_TAG--$NOW
+        docker push $IMAGE_TAG--latest
+        docker push $IMAGE_TAG--$NOW
+
+    - name: 'Restart ECS service'
+      shell: bash
+      if: inputs.ACTION_TYPE == 'ECS'
+      env:
+        APPLICATION_ECS_CLUSTER_NAME: ${{ inputs.APPLICATION_ECS_CLUSTER_NAME }}
+        APPLICATION_NAME: ${{ inputs.APPLICATION_NAME }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
+      run:  |
+          aws ecs update-service --profile default --cluster $APPLICATION_ECS_CLUSTER_NAME --service $APPLICATION_ECS_CLUSTER_NAME-service-$APPLICATION_NAME --force-new-deployment --region $AWS_REGION --no-cli-pager
+
+    
+    - name: 'Restart lambda function'
+      shell: bash
+      if: inputs.ACTION_TYPE == 'LAMBDA'
+      env:
+        APPLICATION_ECR_URL: ${{ inputs.APPLICATION_ECR_URL }}
+        APPLICATION_NAME: ${{ inputs.APPLICATION_NAME }}
+      run:  |
+          IMG_URI=$APPLICATION_ECR_URL::$APPLICATION_NAME--latest
+          aws lambda update-function-code --function-name $inputs.APPLICATION_NAME --image-uri $IMG_URI --no-cli-pager --profile default
+
+
+    - name: 'Push to S3 repo'
+      shell: bash
+      if: inputs.ACTION_TYPE == 'S3'
+      env:
+        S3_FOLDER_HERE: ${{ inputs.S3_FOLDER_HERE }}
+        S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
+      run:  |
+          aws s3 cp --recursive $S3_FOLDER_HERE $S3_FOLDER_THERE --profile default
+      # TODO: add cloudfront cache invalidation if needed?
+
