@@ -67,7 +67,7 @@ runs:
         APPLICATION_IMAGE: ${{ inputs.APPLICATION_IMAGE }}
       run:  |
         NOW=$(date +'%m-%d-%Y--%H-%M-%S')
-        IMAGE_TAG=$APPLICATION_ECR_URL:$APPLICATION_NAME"
+        IMAGE_TAG=$APPLICATION_ECR_URL:$APPLICATION_NAME
         docker tag $inputs.APPLICATION_IMAGE $IMAGE_TAG--latest
         docker tag $inputs.APPLICATION_IMAGE $IMAGE_TAG--$NOW
         docker push $IMAGE_TAG--latest
