@@ -13,6 +13,7 @@ inputs:
     description: 'AWS Access key secret'
     required: true
     default: ''
+
   ACTION_TYPE:
     description: 'Type of the action, must be one of: S3, ECS, LAMBDA'
     required: true
@@ -86,7 +87,7 @@ runs:
           aws ecs update-service --profile default --cluster $APPLICATION_ECS_CLUSTER_NAME --service $APPLICATION_ECS_CLUSTER_NAME-service-$APPLICATION_NAME --force-new-deployment --region $AWS_REGION --no-cli-pager
 
     
-    - name: 'Restart lambda function'
+    - name: 'Restart Lambda function'
       shell: bash
       if: inputs.ACTION_TYPE == 'LAMBDA'
       env:
@@ -104,6 +105,6 @@ runs:
         S3_FOLDER_HERE: ${{ inputs.S3_FOLDER_HERE }}
         S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
       run:  |
-          aws s3 cp --recursive $S3_FOLDER_HERE $S3_FOLDER_THERE --profile default
+          aws s3 cp --recursive "$S3_FOLDER_HERE" "$S3_FOLDER_THERE" --profile default
       # TODO: add cloudfront cache invalidation if needed?
 
