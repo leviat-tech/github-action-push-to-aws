@@ -104,8 +104,9 @@ runs:
       env:
         S3_FOLDER_HERE: ${{ inputs.S3_FOLDER_HERE }}
         S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
       run:  |
           echo "Copying files recursively from $S3_FOLDER_HERE to $S3_FOLDER_THERE"
-          aws s3 cp --recursive "$S3_FOLDER_HERE" "$S3_FOLDER_THERE" --profile default --debug
+          aws s3 cp --recursive "$S3_FOLDER_HERE" "$S3_FOLDER_THERE" --region $AWS_REGION --profile default --debug
       # TODO: add cloudfront cache invalidation if needed?
 
