@@ -106,6 +106,6 @@ runs:
         S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
       run:  |
           echo "Copying files recursively from $S3_FOLDER_HERE to $S3_FOLDER_THERE"
-          aws s3 cp --recursive "$S3_FOLDER_HERE" "$S3_FOLDER_THERE" --profile default
+          aws s3 cp --recursive "$S3_FOLDER_HERE" "$S3_FOLDER_THERE" --profile default --debug
       # TODO: add cloudfront cache invalidation if needed?
 
