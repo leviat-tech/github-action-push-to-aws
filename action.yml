@@ -36,7 +36,6 @@ inputs:
     description: 'Required if ACTION_TYPE is ECS. ECS cluster name url.'
     required: false
     default: ''
-
   S3_FOLDER_HERE:
     description: 'Required if ACTION_TYPE is S3. Path of the local folder you want to copy'
     required: false
@@ -45,6 +44,12 @@ inputs:
     description: 'Required if ACTION_TYPE is S3. Path of the s3 folder you want to copy to'
     required: false
     default: ''
+  
+  S3_FOLDER_THERE_CLEAR:
+    description: 'Path of the local folder you want to copy'
+    required: false
+    default: 'false'
+
 runs:
   using: "composite"
   steps:
@@ -97,6 +102,16 @@ runs:
           IMG_URI=$APPLICATION_ECR_URL::$APPLICATION_NAME--latest
           aws lambda update-function-code --function-name $APPLICATION_NAME --image-uri $IMG_URI --no-cli-pager --profile default
 
+
+    - name: 'Clear S3 folder before pushing'
+      shell: bash
+      if: inputs.ACTION_TYPE == 'S3' && inputs.S3_FOLDER_THERE_CLEAR == 'true'
+      env:
+        S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
+      run:  |
+          echo "Clearing files recursively in $S3_FOLDER_THERE"
+          aws s3 rm --recursive "$S3_FOLDER_THERE" --region $AWS_REGION --profile default --debug
 
     - name: 'Push to S3 repo'
       shell: bash
