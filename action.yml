@@ -36,6 +36,10 @@ inputs:
     description: 'Required if ACTION_TYPE is ECS. ECS cluster name url.'
     required: false
     default: ''
+  APPLICATION_LAMBDA_ENV_NAME:
+    description: 'Required if ACTION_TYPE is: LAMBDA. Name of the env you are using like lds-test.'
+    required: false
+    default: ''
   S3_FOLDER_HERE:
     description: 'Required if ACTION_TYPE is S3. Path of the local folder you want to copy'
     required: false
@@ -98,9 +102,10 @@ runs:
       env:
         APPLICATION_ECR_URL: ${{ inputs.APPLICATION_ECR_URL }}
         APPLICATION_NAME: ${{ inputs.APPLICATION_NAME }}
+        APPLICATION_LAMBDA_ENV_NAME: ${{ inputs.APPLICATION_LAMBDA_ENV_NAME }}
       run:  |
           IMG_URI=$APPLICATION_ECR_URL::$APPLICATION_NAME--latest
-          aws lambda update-function-code --function-name $APPLICATION_NAME --image-uri $IMG_URI --no-cli-pager --profile default
+          aws lambda update-function-code --function-name $APPLICATION_LAMBDA_ENV_NAME-$APPLICATION_NAME --image-uri $IMG_URI --no-cli-pager --profile default
 
 
     - name: 'Clear S3 folder before pushing'
