@@ -103,9 +103,10 @@ runs:
         APPLICATION_ECR_URL: ${{ inputs.APPLICATION_ECR_URL }}
         APPLICATION_NAME: ${{ inputs.APPLICATION_NAME }}
         APPLICATION_LAMBDA_ENV_NAME: ${{ inputs.APPLICATION_LAMBDA_ENV_NAME }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
       run:  |
           IMG_URI=$APPLICATION_ECR_URL:$APPLICATION_NAME--latest
-          aws lambda update-function-code --function-name $APPLICATION_LAMBDA_ENV_NAME-$APPLICATION_NAME --image-uri $IMG_URI --no-cli-pager --profile default --debug
+          aws lambda update-function-code --function-name $APPLICATION_LAMBDA_ENV_NAME-$APPLICATION_NAME --image-uri $IMG_URI --region $AWS_REGION --no-cli-pager --profile default --debug
 
 
     - name: 'Clear S3 folder before pushing'
