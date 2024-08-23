@@ -48,9 +48,14 @@ inputs:
     description: 'Required if ACTION_TYPE is S3. Path of the s3 folder you want to copy to'
     required: false
     default: ''
-  
+
   S3_FOLDER_THERE_CLEAR:
-    description: 'Path of the local folder you want to copy'
+    description: 'Recursively clear the destination folder'
+    required: false
+    default: 'false'
+
+  S3_CLEAR_ONLY:
+    description: 'Clear the destination folder without copying any files'
     required: false
     default: 'false'
 
@@ -95,7 +100,7 @@ runs:
       run:  |
           aws ecs update-service --profile default --cluster $APPLICATION_ECS_CLUSTER_NAME --service $APPLICATION_ECS_CLUSTER_NAME-service-$APPLICATION_NAME --force-new-deployment --region $AWS_REGION --no-cli-pager
 
-    
+
     - name: 'Restart Lambda function'
       shell: bash
       if: inputs.ACTION_TYPE == 'LAMBDA'
@@ -111,7 +116,7 @@ runs:
 
     - name: 'Clear S3 folder before pushing'
       shell: bash
-      if: inputs.ACTION_TYPE == 'S3' && inputs.S3_FOLDER_THERE_CLEAR == 'true'
+      if: inputs.ACTION_TYPE == 'S3' && (inputs.S3_FOLDER_THERE_CLEAR == 'true' || inputs.S3_CLEAR_ONLY == 'true')
       env:
         S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
         AWS_REGION: ${{ inputs.AWS_REGION }}
@@ -121,7 +126,7 @@ runs:
 
     - name: 'Push to S3 repo'
       shell: bash
-      if: inputs.ACTION_TYPE == 'S3'
+      if: inputs.ACTION_TYPE == 'S3' && inputs.S3_CLEAR_ONLY != 'true'
       env:
         S3_FOLDER_HERE: ${{ inputs.S3_FOLDER_HERE }}
         S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
