@@ -48,14 +48,16 @@ inputs:
     description: 'Required if ACTION_TYPE is S3. Path of the s3 folder you want to copy to'
     required: false
     default: ''
-
   S3_FOLDER_THERE_CLEAR:
     description: 'Recursively clear the destination folder'
     required: false
     default: 'false'
-
   S3_CLEAR_ONLY:
     description: 'Clear the destination folder without copying any files'
+    required: false
+    default: 'false'
+  S3_CREATE_INDEX:
+    description: 'Create/update an index.json file here which lists subfolders'
     required: false
     default: 'false'
 
@@ -115,6 +117,7 @@ runs:
 
 
     - name: 'Clear S3 folder before pushing'
+      id: s3_clear
       shell: bash
       if: inputs.ACTION_TYPE == 'S3' && (inputs.S3_FOLDER_THERE_CLEAR == 'true' || inputs.S3_CLEAR_ONLY == 'true')
       env:
@@ -125,6 +128,7 @@ runs:
           aws s3 rm --recursive "$S3_FOLDER_THERE" --region $AWS_REGION --profile default --debug
 
     - name: 'Push to S3 repo'
+      id: s3_push
       shell: bash
       if: inputs.ACTION_TYPE == 'S3' && inputs.S3_CLEAR_ONLY != 'true'
       env:
@@ -135,4 +139,18 @@ runs:
           echo "Copying files recursively from $S3_FOLDER_HERE to $S3_FOLDER_THERE"
           aws s3 cp --recursive "$S3_FOLDER_HERE" "$S3_FOLDER_THERE" --region $AWS_REGION --profile default --debug
       # TODO: add cloudfront cache invalidation if needed?
+
+      # Creates/updates index.json file in the dest folder listing all subfolders
+    - name: 'Update index.json'
+      shell: bash
+      if: inputs.ACTION_TYPE == 'S3' && inputs.S3_CREATE_INDEX == 'true' && (steps.s3_push.outcome == 'success' || steps.s3_clear.outcome == 'success')
+      env:
+        S3_FOLDER_THERE: ${{ inputs.S3_FOLDER_THERE }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
+      run: |
+        INDEX_FOLDER=$(echo '$S3_FOLDER_THERE' | jq -R 'split("/") | .[0:-1] | join("/")')
+        echo "Creating index.json file in $INDEX_FOLDER"
+        aws s3 ls "$FOLDER_INDEX" --recursive | awk -F/ '{ if ($2 !~ /index\.json/) print $2}' | jq -R | sort -u | jq -s .
+        aws s3 ls "$FOLDER_INDEX" --recursive | awk -F/ '{ if ($2 !~ /index\.json/) print $2}' | jq -R | sort -u | jq -s . > index.json
+        aws s3 cp index.json "$FOLDER_INDEX/index.json"
 
