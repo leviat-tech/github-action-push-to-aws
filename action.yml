@@ -150,6 +150,5 @@ runs:
       run: |
         INDEX_FOLDER=$(echo $S3_FOLDER_THERE | jq -R -r 'split("/") | .[0:-1] | join("/")')
         echo "Creating index.json file in $INDEX_FOLDER"
-        aws s3 ls "$FOLDER_INDEX" --recursive | awk -F/ '{ if ($2 !~ /index\.json/) print $2}' | jq -R | sort -u | jq -s . > index.json
-        aws s3 cp index.json "$FOLDER_INDEX/index.json"
-
+        aws s3 ls "$INDEX_FOLDER" --recursive | awk -F/ '{ if ($2 !~ /index\.json/) print $2}' | jq -R | sort -u | jq -s . > index.json
+        aws s3 cp index.json "$INDEX_FOLDER/index.json"
